@@ -179,7 +179,7 @@ export default function Withdraw() {
       )}
 
       {/* === Mobile money modes === */}
-      {(mode === 'mpesa' || mode === 'airtel') && !sent && (
+      {(mode === 'mpesa' || mode === 'airtel') && !sent && !failed && (
         <div className="px-5 mt-4 space-y-5">
           {/* Recipient toggle */}
           <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-muted/60">
@@ -247,9 +247,9 @@ export default function Withdraw() {
             insufficient={insufficient}
             label={mode === 'mpesa' ? 'M-Pesa send amount' : 'Airtel send amount'}
           >
-            <Button onClick={sendMobileMoney} className="w-full h-12 rounded-xl bg-gradient-primary font-semibold shadow-elevated">
+            <Button onClick={requestSend} className="w-full h-12 rounded-xl bg-gradient-primary font-semibold shadow-elevated">
               <Send className="h-4 w-4 mr-2" />
-              Send {amount > 0 ? KES(amount, { compact: true }) : ''}
+              Authorize & send {amount > 0 ? KES(amount, { compact: true }) : ''}
             </Button>
           </AmountAndSource>
         </div>
@@ -286,6 +286,36 @@ export default function Withdraw() {
           </Button>
         </div>
       )}
+
+      {(mode === 'mpesa' || mode === 'airtel') && failed && (
+        <div className="px-5 mt-4 space-y-5 animate-fade-in">
+          <div className="rounded-3xl p-6 bg-destructive/10 border border-destructive/20 text-center">
+            <div className="mx-auto h-14 w-14 rounded-full bg-destructive/20 grid place-items-center">
+              <X className="h-7 w-7 text-destructive" strokeWidth={3} />
+            </div>
+            <p className="mt-4 text-destructive text-xs uppercase tracking-wider font-semibold">Transfer failed</p>
+            <p className="font-display font-bold text-2xl mt-2 font-mono-num">{KES(amount, { compact: true })}</p>
+            <p className="mt-1 text-muted-foreground text-sm font-mono-num">to {failed.phone}</p>
+            <p className="mt-3 text-xs text-muted-foreground">{failed.reason}</p>
+          </div>
+          <div className="rounded-2xl p-4 bg-muted/40 border border-border/60">
+            <p className="text-xs text-muted-foreground">No funds were moved. You can retry the authorization or cancel.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button onClick={reset} variant="outline" className="h-12 rounded-xl font-semibold">Cancel</Button>
+            <Button onClick={() => { setFailed(null); setOtpOpen(true); }} className="h-12 rounded-xl bg-gradient-primary font-semibold">Try again</Button>
+          </div>
+        </div>
+      )}
+
+      <OtpAuthorize
+        open={otpOpen}
+        phone={user?.phone ?? '+254 712 345 678'}
+        amount={amount}
+        merchant={`${mode === 'mpesa' ? 'M-Pesa' : 'Airtel Money'} → ${recipient === 'self' ? (user?.phone ?? '') : recipientPhone}`}
+        onClose={() => setOtpOpen(false)}
+        onComplete={onOtp}
+      />
     </div>
   );
 }
