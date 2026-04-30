@@ -4,9 +4,10 @@ import { useApp } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { KES } from '@/lib/format';
-import { CreditCard, Building2, Smartphone, Check, Zap, ArrowRight, Phone } from 'lucide-react';
+import { CreditCard, Building2, Smartphone, Check, X, Zap, ArrowRight, Phone, Shield } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { OtpAuthorize, OtpResult } from '@/components/OtpAuthorize';
 
 type Source = 'verve' | 'bank' | 'mpesa';
 
@@ -45,13 +46,15 @@ const FLOWS: Record<Source, FlowStep[]> = {
 };
 
 export default function LipaFaster() {
-  const { cards, accounts, addTransaction } = useApp();
+  const { cards, accounts, user, addTransaction } = useApp();
   const [source, setSource] = useState<Source>('verve');
   const [tillNumber, setTillNumber] = useState('');
   const [merchantName, setMerchantName] = useState('');
   const [amount, setAmount] = useState<number>(0);
   const [sourceId, setSourceId] = useState<string>(cards[0]?.id ?? '');
-  const [paid, setPaid] = useState<null | { ref: string }>(null);
+  const [paid, setPaid] = useState<null | { ref: string; authRef?: string }>(null);
+  const [failed, setFailed] = useState<null | { reason: string }>(null);
+  const [otpOpen, setOtpOpen] = useState(false);
 
   const onSelectSource = (s: Source) => {
     setSource(s);
@@ -59,11 +62,20 @@ export default function LipaFaster() {
     else setSourceId(accounts[0]?.id ?? '');
   };
 
-  const pay = () => {
+  const requestPayment = () => {
     if (!tillNumber.trim()) { toast({ title: 'Enter the merchant Till number', variant: 'destructive' }); return; }
     if (amount < 10) { toast({ title: 'Minimum amount is KES 10', variant: 'destructive' }); return; }
+    setOtpOpen(true);
+  };
+
+  const onOtp = (result: OtpResult, authRef?: string) => {
+    setOtpOpen(false);
+    if (result === 'failed') {
+      setFailed({ reason: 'OTP authorization was not completed.' });
+      return;
+    }
     const ref = 'LF' + Date.now().toString().slice(-8);
-    setPaid({ ref });
+    setPaid({ ref, authRef });
     addTransaction({
       id: 't_' + ref,
       cardId: source === 'verve' ? sourceId : undefined,
@@ -78,7 +90,7 @@ export default function LipaFaster() {
     toast({ title: 'Payment successful', description: `${KES(amount, { compact: true })} paid to ${merchantName || 'Till ' + tillNumber}` });
   };
 
-  const reset = () => { setPaid(null); setAmount(0); setTillNumber(''); setMerchantName(''); };
+  const reset = () => { setPaid(null); setFailed(null); setAmount(0); setTillNumber(''); setMerchantName(''); };
 
   const selectedSource = SOURCES.find((s) => s.id === source)!;
 
@@ -86,7 +98,17 @@ export default function LipaFaster() {
     <div>
       <ScreenHeader back title="Lipa Faster" subtitle="Instant merchant payments · powered by Interswitch" />
 
-      {!paid ? (
+      <OtpAuthorize
+        open={otpOpen}
+        phone={user?.phone ?? '+254 712 345 678'}
+        amount={amount}
+        merchant={`Lipa Faster · ${merchantName || (tillNumber ? `Till ${tillNumber}` : 'merchant')}`}
+        onClose={() => setOtpOpen(false)}
+        onComplete={onOtp}
+      />
+
+
+      {!paid && !failed ? (
         <div className="px-5 mt-4 space-y-5">
           {/* Hero badge */}
           <div className="rounded-2xl p-4 bg-gradient-primary text-primary-foreground flex items-center gap-3 shadow-elevated">
@@ -219,18 +241,18 @@ export default function LipaFaster() {
             </ol>
           </div>
 
-          <Button onClick={pay} className="w-full h-12 rounded-xl bg-gradient-primary font-semibold shadow-elevated">
-            <Zap className="h-4 w-4 mr-2" />
-            Pay {amount > 0 ? KES(amount, { compact: true }) : 'merchant'} <ArrowRight className="h-4 w-4 ml-2" />
+          <Button onClick={requestPayment} className="w-full h-12 rounded-xl bg-gradient-primary font-semibold shadow-elevated">
+            <Shield className="h-4 w-4 mr-2" />
+            Authorize & pay {amount > 0 ? KES(amount, { compact: true }) : ''} <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
-      ) : (
+      ) : paid ? (
         <div className="px-5 mt-4 space-y-5 animate-fade-in">
           <div className="rounded-3xl p-6 bg-card-1 verve-card text-center">
             <div className="relative z-10 mx-auto h-14 w-14 rounded-full bg-white/20 grid place-items-center backdrop-blur-sm">
               <Check className="h-7 w-7 text-white" />
             </div>
-            <p className="relative z-10 mt-4 text-white/80 text-xs uppercase tracking-wider font-semibold">Lipa Faster</p>
+            <p className="relative z-10 mt-4 text-white/80 text-xs uppercase tracking-wider font-semibold">Payment successful</p>
             <p className="relative z-10 font-display font-bold text-3xl mt-2 font-mono-num text-white">
               {KES(amount, { compact: true })}
             </p>
@@ -239,6 +261,12 @@ export default function LipaFaster() {
               <span className="text-[10px] uppercase tracking-wider text-white/80 font-semibold">Ref</span>
               <span className="text-xs font-mono-num font-semibold text-white">{paid.ref}</span>
             </div>
+            {paid.authRef && (
+              <div className="relative z-10 mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15">
+                <span className="text-[9px] uppercase tracking-wider text-white/70 font-semibold">Auth</span>
+                <span className="text-[11px] font-mono-num font-semibold text-white/90">{paid.authRef}</span>
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl p-4 bg-success/10 border border-success/20">
@@ -250,6 +278,31 @@ export default function LipaFaster() {
           <Button onClick={reset} variant="outline" className="w-full h-12 rounded-xl font-semibold">
             Pay another merchant
           </Button>
+        </div>
+      ) : (
+        <div className="px-5 mt-4 space-y-5 animate-fade-in">
+          <div className="rounded-3xl p-6 bg-destructive/10 border border-destructive/20 text-center">
+            <div className="mx-auto h-14 w-14 rounded-full bg-destructive/20 grid place-items-center">
+              <X className="h-7 w-7 text-destructive" strokeWidth={3} />
+            </div>
+            <p className="mt-4 text-destructive text-xs uppercase tracking-wider font-semibold">Payment failed</p>
+            <p className="font-display font-bold text-2xl mt-2 font-mono-num">
+              {KES(amount, { compact: true })}
+            </p>
+            <p className="mt-1 text-muted-foreground text-sm">to {merchantName || `Till ${tillNumber}`}</p>
+            <p className="mt-3 text-xs text-muted-foreground">{failed?.reason}</p>
+          </div>
+
+          <div className="rounded-2xl p-4 bg-muted/40 border border-border/60">
+            <p className="text-xs text-muted-foreground">
+              No funds were moved. You can try again or cancel the request.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Button onClick={reset} variant="outline" className="h-12 rounded-xl font-semibold">Cancel</Button>
+            <Button onClick={() => { setFailed(null); setOtpOpen(true); }} className="h-12 rounded-xl bg-gradient-primary font-semibold">Try again</Button>
+          </div>
         </div>
       )}
     </div>
