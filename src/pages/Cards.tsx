@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
-import { Eye, EyeOff, Snowflake, Lock, Globe, Wifi, Banknote, Fingerprint, AlertOctagon, Plus, Copy, Check } from 'lucide-react';
+import { Eye, EyeOff, Snowflake, Lock, Globe, Wifi, Banknote, Fingerprint, AlertOctagon, Plus, Copy, Check, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useApp } from '@/store/app-store';
 import { CardStatus, VerveCard } from '@/types/verve';
 import { KES, maskPan } from '@/lib/format';
+import { useDynamicCvv } from '@/hooks/use-dcvv';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
@@ -19,7 +20,7 @@ const STATUS_LABELS: Record<CardStatus, { label: string; className: string }> = 
   blocked: { label: 'Blocked', className: 'bg-destructive/20 text-destructive border border-destructive/30' },
 };
 
-function CardVisual({ card, revealed }: { card: VerveCard; revealed: boolean }) {
+function CardVisual({ card, revealed, dcvv }: { card: VerveCard; revealed: boolean; dcvv: string }) {
   const grad =
     card.status === 'frozen' ? 'bg-card-frozen' :
     card.status === 'blocked' ? 'bg-card-blocked' :
@@ -55,8 +56,8 @@ function CardVisual({ card, revealed }: { card: VerveCard; revealed: boolean }) 
             <p className="text-xs font-mono-num font-semibold">{card.expiry}</p>
           </div>
           <div className="text-right">
-            <p className="text-[9px] text-white/60 uppercase tracking-wider">CVV</p>
-            <p className="text-xs font-mono-num font-semibold">{revealed ? card.cvv : '•••'}</p>
+            <p className="text-[9px] text-white/60 uppercase tracking-wider">dCVV</p>
+            <p className="text-xs font-mono-num font-semibold">{revealed ? dcvv : '•••'}</p>
           </div>
         </div>
       </div>
