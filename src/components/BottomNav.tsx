@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, CreditCard, ArrowLeftRight, Receipt, Settings as SettingsIcon, ShieldAlert } from 'lucide-react';
+import { Home, CreditCard, ArrowLeftRight, Receipt, Settings as SettingsIcon, ShieldAlert, Zap } from 'lucide-react';
 import { useApp } from '@/store/app-store';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 const tabs = [
   { to: '/app', label: 'Home', icon: Home, end: true },
   { to: '/app/cards', label: 'Cards', icon: CreditCard },
+  { to: '/app/lipa', label: 'Lipa', icon: Zap },
   { to: '/app/transactions', label: 'Activity', icon: ArrowLeftRight },
   { to: '/app/bills', label: 'Pay', icon: Receipt },
   { to: '/app/settings', label: 'More', icon: SettingsIcon },

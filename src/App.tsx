@@ -14,6 +14,7 @@ import Transactions from "./pages/Transactions";
 import Bills from "./pages/Bills";
 import Settings from "./pages/Settings";
 import Withdraw from "./pages/Withdraw";
+import LipaFaster from "./pages/LipaFaster";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -38,6 +39,7 @@ const App = () => (
                 <Route path="bills" element={<Bills />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="withdraw" element={<Withdraw />} />
+                <Route path="lipa" element={<LipaFaster />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
