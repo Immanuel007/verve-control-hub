@@ -176,6 +176,46 @@ export default function Cards() {
         <Fingerprint className="h-8 w-8 text-primary/40" />
       </div>
 
+      {/* Dynamic CVV */}
+      <section className="mt-5 mx-5 rounded-2xl p-4 bg-card border border-border/60">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            <p className="font-display font-bold text-sm">Dynamic CVV</p>
+          </div>
+          <button
+            onClick={() => { rotateDcvv(); toast({ title: 'New dCVV generated' }); }}
+            className="h-8 w-8 rounded-lg grid place-items-center bg-muted hover:bg-muted/80 transition active:scale-95"
+            aria-label="Regenerate dCVV"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="mt-3 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Current code</p>
+            <p className="font-mono-num font-bold text-3xl tracking-[0.3em] text-primary mt-1">
+              {revealed ? dcvv : '•••'}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Rotates in</p>
+            <p className="font-mono-num font-bold text-lg mt-1">
+              {String(Math.floor(dcvvSeconds / 60)).padStart(2, '0')}:{String(dcvvSeconds % 60).padStart(2, '0')}
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full bg-gradient-primary transition-all duration-1000"
+            style={{ width: `${(dcvvSeconds / dcvvTtl) * 100}%` }}
+          />
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-2.5">
+          dCVV expires every 20 minutes and a new one is generated automatically. Tap reveal to view.
+        </p>
+      </section>
+
       {/* Controls */}
       <section className="mt-5 mx-5 rounded-2xl bg-card border border-border/60 overflow-hidden">
         <div className="px-4 pt-4 pb-2">
