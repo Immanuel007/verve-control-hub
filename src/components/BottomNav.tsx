@@ -32,12 +32,11 @@ export function BottomNav() {
       </button>
 
       <nav className="safe-bottom fixed bottom-0 inset-x-0 z-30 mx-auto max-w-[440px] px-3 pt-2 pb-2 bg-background/85 backdrop-blur-2xl border-t border-border/60">
-        <ul className="grid grid-cols-5 items-end">
-          {tabs.map((t, i) => {
+        <ul className="grid grid-cols-6 items-end">
+          {tabs.map((t) => {
             const Icon = t.icon;
-            const isMiddle = i === 2;
             return (
-              <li key={t.to} className={cn('flex justify-center', isMiddle && 'mr-6 ml-0')}>
+              <li key={t.to} className="flex justify-center">
                 <NavLink
                   to={t.to}
                   end={t.end}
