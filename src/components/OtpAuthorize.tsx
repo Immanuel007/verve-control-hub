@@ -82,10 +82,8 @@ export function OtpAuthorize({ open, phone, amount, merchant, onClose, onComplet
     const ac = new AbortController();
     abortRef.current = ac;
 
-    // @ts-expect-error - OTPCredential is not yet in lib.dom for all TS versions
     if ('OTPCredential' in window && navigator.credentials?.get) {
-      navigator.credentials
-        // @ts-expect-error - experimental API
+      (navigator.credentials as any)
         .get({ otp: { transport: ['sms'] }, signal: ac.signal })
         .then((cred: any) => {
           if (cred?.code) {
