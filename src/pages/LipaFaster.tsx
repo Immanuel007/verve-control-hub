@@ -62,13 +62,21 @@ export default function LipaFaster() {
 
   const selectedSource = SOURCES.find((s) => s.id === source)!;
 
-  const selectedSource = SOURCES.find((s) => s.id === source)!;
-
   return (
     <div>
       <ScreenHeader back title="Lipa Faster" subtitle="Instant merchant payments · powered by Interswitch" />
 
-      {!paid ? (
+      <OtpAuthorize
+        open={otpOpen}
+        phone={user?.phone ?? '+254 712 345 678'}
+        amount={amount}
+        merchant={`Lipa Faster · ${merchantName || (tillNumber ? `Till ${tillNumber}` : 'merchant')}`}
+        onClose={() => setOtpOpen(false)}
+        onComplete={onOtp}
+      />
+
+
+      {!paid && !failed ? (
         <div className="px-5 mt-4 space-y-5">
           {/* Hero badge */}
           <div className="rounded-2xl p-4 bg-gradient-primary text-primary-foreground flex items-center gap-3 shadow-elevated">
@@ -201,18 +209,18 @@ export default function LipaFaster() {
             </ol>
           </div>
 
-          <Button onClick={pay} className="w-full h-12 rounded-xl bg-gradient-primary font-semibold shadow-elevated">
-            <Zap className="h-4 w-4 mr-2" />
-            Pay {amount > 0 ? KES(amount, { compact: true }) : 'merchant'} <ArrowRight className="h-4 w-4 ml-2" />
+          <Button onClick={requestPayment} className="w-full h-12 rounded-xl bg-gradient-primary font-semibold shadow-elevated">
+            <Shield className="h-4 w-4 mr-2" />
+            Authorize & pay {amount > 0 ? KES(amount, { compact: true }) : ''} <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
-      ) : (
+      ) : paid ? (
         <div className="px-5 mt-4 space-y-5 animate-fade-in">
           <div className="rounded-3xl p-6 bg-card-1 verve-card text-center">
             <div className="relative z-10 mx-auto h-14 w-14 rounded-full bg-white/20 grid place-items-center backdrop-blur-sm">
               <Check className="h-7 w-7 text-white" />
             </div>
-            <p className="relative z-10 mt-4 text-white/80 text-xs uppercase tracking-wider font-semibold">Lipa Faster</p>
+            <p className="relative z-10 mt-4 text-white/80 text-xs uppercase tracking-wider font-semibold">Payment successful</p>
             <p className="relative z-10 font-display font-bold text-3xl mt-2 font-mono-num text-white">
               {KES(amount, { compact: true })}
             </p>
@@ -221,6 +229,12 @@ export default function LipaFaster() {
               <span className="text-[10px] uppercase tracking-wider text-white/80 font-semibold">Ref</span>
               <span className="text-xs font-mono-num font-semibold text-white">{paid.ref}</span>
             </div>
+            {paid.authRef && (
+              <div className="relative z-10 mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15">
+                <span className="text-[9px] uppercase tracking-wider text-white/70 font-semibold">Auth</span>
+                <span className="text-[11px] font-mono-num font-semibold text-white/90">{paid.authRef}</span>
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl p-4 bg-success/10 border border-success/20">
@@ -232,6 +246,31 @@ export default function LipaFaster() {
           <Button onClick={reset} variant="outline" className="w-full h-12 rounded-xl font-semibold">
             Pay another merchant
           </Button>
+        </div>
+      ) : (
+        <div className="px-5 mt-4 space-y-5 animate-fade-in">
+          <div className="rounded-3xl p-6 bg-destructive/10 border border-destructive/20 text-center">
+            <div className="mx-auto h-14 w-14 rounded-full bg-destructive/20 grid place-items-center">
+              <X className="h-7 w-7 text-destructive" strokeWidth={3} />
+            </div>
+            <p className="mt-4 text-destructive text-xs uppercase tracking-wider font-semibold">Payment failed</p>
+            <p className="font-display font-bold text-2xl mt-2 font-mono-num">
+              {KES(amount, { compact: true })}
+            </p>
+            <p className="mt-1 text-muted-foreground text-sm">to {merchantName || `Till ${tillNumber}`}</p>
+            <p className="mt-3 text-xs text-muted-foreground">{failed?.reason}</p>
+          </div>
+
+          <div className="rounded-2xl p-4 bg-muted/40 border border-border/60">
+            <p className="text-xs text-muted-foreground">
+              No funds were moved. You can try again or cancel the request.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Button onClick={reset} variant="outline" className="h-12 rounded-xl font-semibold">Cancel</Button>
+            <Button onClick={() => { setFailed(null); setOtpOpen(true); }} className="h-12 rounded-xl bg-gradient-primary font-semibold">Try again</Button>
+          </div>
         </div>
       )}
     </div>
