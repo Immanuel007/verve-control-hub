@@ -273,6 +273,12 @@ export default function Withdraw() {
               <span className="text-[10px] uppercase tracking-wider text-white/80 font-semibold">Ref</span>
               <span className="text-xs font-mono-num font-semibold text-white">{sent.ref}</span>
             </div>
+            {sent.authRef && (
+              <div className="relative z-10 mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15">
+                <span className="text-[9px] uppercase tracking-wider text-white/70 font-semibold">Auth</span>
+                <span className="text-[11px] font-mono-num font-semibold text-white/90">{sent.authRef}</span>
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl p-4 bg-success/10 border border-success/20">
