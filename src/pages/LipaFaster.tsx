@@ -4,9 +4,10 @@ import { useApp } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { KES } from '@/lib/format';
-import { CreditCard, Building2, Smartphone, Check, Zap, ArrowRight, Phone } from 'lucide-react';
+import { CreditCard, Building2, Smartphone, Check, X, Zap, ArrowRight, Phone, Shield } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { OtpAuthorize, OtpResult } from '@/components/OtpAuthorize';
 
 type Source = 'verve' | 'bank' | 'mpesa';
 
