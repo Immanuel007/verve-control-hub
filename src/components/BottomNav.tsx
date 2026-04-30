@@ -24,7 +24,7 @@ export function BottomNav() {
           emergencyFreezeAll();
           toast({ title: 'All cards frozen', description: 'Tap any card to unfreeze when you\'re ready.' });
         }}
-        className="fixed left-1/2 -translate-x-1/2 bottom-[78px] z-40 h-14 w-14 rounded-full bg-gradient-primary shadow-elevated grid place-items-center text-primary-foreground active:scale-95 transition"
+        className="fixed right-4 bottom-[88px] z-40 h-14 w-14 rounded-full bg-gradient-primary shadow-elevated grid place-items-center text-primary-foreground active:scale-95 transition"
         aria-label="Emergency freeze all cards"
       >
         <span className="absolute inset-0 rounded-full bg-primary/40 animate-pulse-ring" />
