@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Bell, Send, Banknote, Receipt, CreditCard, ArrowUpRight, ArrowDownRight, Eye, EyeOff } from 'lucide-react';
+import { Bell, Send, Banknote, Receipt, CreditCard, ArrowUpRight, ArrowDownRight, Eye, EyeOff, Zap } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useApp } from '@/store/app-store';
 import { KES, formatRelative } from '@/lib/format';
@@ -8,10 +8,10 @@ import { useTheme } from '@/store/theme';
 import { Sun, Moon } from 'lucide-react';
 
 const QUICK = [
-  { to: '/app/withdraw', label: 'Withdraw\nCash', icon: Banknote, color: 'bg-primary/10 text-primary' },
-  { to: '/app/bills', label: 'Pay Bills', icon: Receipt, color: 'bg-accent/15 text-accent' },
-  { to: '/app/cards', label: 'My Cards', icon: CreditCard, color: 'bg-secondary/10 text-secondary dark:text-secondary-foreground' },
-  { to: '/app/transactions', label: 'Activity', icon: Send, color: 'bg-warning/15 text-warning' },
+  { to: '/app/withdraw', label: 'Withdraw\n& Send', icon: Banknote, color: 'bg-primary/10 text-primary' },
+  { to: '/app/lipa', label: 'Lipa\nFaster', icon: Zap, color: 'bg-accent/15 text-accent' },
+  { to: '/app/bills', label: 'Pay\nBills', icon: Receipt, color: 'bg-warning/15 text-warning' },
+  { to: '/app/cards', label: 'My\nCards', icon: CreditCard, color: 'bg-secondary/10 text-secondary dark:text-secondary-foreground' },
 ];
 
 export default function Home() {

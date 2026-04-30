@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
-import { Eye, EyeOff, Snowflake, Lock, Globe, Wifi, Banknote, Fingerprint, AlertOctagon, Plus, Copy, Check } from 'lucide-react';
+import { Eye, EyeOff, Snowflake, Lock, Globe, Wifi, Banknote, Fingerprint, AlertOctagon, Plus, Copy, Check, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useApp } from '@/store/app-store';
 import { CardStatus, VerveCard } from '@/types/verve';
 import { KES, maskPan } from '@/lib/format';
+import { useDynamicCvv } from '@/hooks/use-dcvv';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
@@ -19,7 +20,7 @@ const STATUS_LABELS: Record<CardStatus, { label: string; className: string }> = 
   blocked: { label: 'Blocked', className: 'bg-destructive/20 text-destructive border border-destructive/30' },
 };
 
-function CardVisual({ card, revealed }: { card: VerveCard; revealed: boolean }) {
+function CardVisual({ card, revealed, dcvv }: { card: VerveCard; revealed: boolean; dcvv: string }) {
   const grad =
     card.status === 'frozen' ? 'bg-card-frozen' :
     card.status === 'blocked' ? 'bg-card-blocked' :
@@ -55,8 +56,8 @@ function CardVisual({ card, revealed }: { card: VerveCard; revealed: boolean }) 
             <p className="text-xs font-mono-num font-semibold">{card.expiry}</p>
           </div>
           <div className="text-right">
-            <p className="text-[9px] text-white/60 uppercase tracking-wider">CVV</p>
-            <p className="text-xs font-mono-num font-semibold">{revealed ? card.cvv : '•••'}</p>
+            <p className="text-[9px] text-white/60 uppercase tracking-wider">dCVV</p>
+            <p className="text-xs font-mono-num font-semibold">{revealed ? dcvv : '•••'}</p>
           </div>
         </div>
       </div>
@@ -74,6 +75,7 @@ export default function Cards() {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   const card = cards[activeIdx];
+  const { cvv: dcvv, secondsLeft: dcvvSeconds, ttl: dcvvTtl, rotate: rotateDcvv } = useDynamicCvv(card.id);
 
   const onScroll = () => {
     const el = scrollerRef.current; if (!el) return;
@@ -121,7 +123,7 @@ export default function Cards() {
       >
         {cards.map((c, i) => (
           <div key={c.id} className="snap-center shrink-0 w-[calc(100%-40px)]">
-            <CardVisual card={c} revealed={i === activeIdx && revealed} />
+            <CardVisual card={c} revealed={i === activeIdx && revealed} dcvv={i === activeIdx ? dcvv : '•••'} />
           </div>
         ))}
       </div>
@@ -173,6 +175,46 @@ export default function Cards() {
         </div>
         <Fingerprint className="h-8 w-8 text-primary/40" />
       </div>
+
+      {/* Dynamic CVV */}
+      <section className="mt-5 mx-5 rounded-2xl p-4 bg-card border border-border/60">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            <p className="font-display font-bold text-sm">Dynamic CVV</p>
+          </div>
+          <button
+            onClick={() => { rotateDcvv(); toast({ title: 'New dCVV generated' }); }}
+            className="h-8 w-8 rounded-lg grid place-items-center bg-muted hover:bg-muted/80 transition active:scale-95"
+            aria-label="Regenerate dCVV"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="mt-3 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Current code</p>
+            <p className="font-mono-num font-bold text-3xl tracking-[0.3em] text-primary mt-1">
+              {revealed ? dcvv : '•••'}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Rotates in</p>
+            <p className="font-mono-num font-bold text-lg mt-1">
+              {String(Math.floor(dcvvSeconds / 60)).padStart(2, '0')}:{String(dcvvSeconds % 60).padStart(2, '0')}
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full bg-gradient-primary transition-all duration-1000"
+            style={{ width: `${(dcvvSeconds / dcvvTtl) * 100}%` }}
+          />
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-2.5">
+          dCVV expires every 20 minutes and a new one is generated automatically. Tap reveal to view.
+        </p>
+      </section>
 
       {/* Controls */}
       <section className="mt-5 mx-5 rounded-2xl bg-card border border-border/60 overflow-hidden">
