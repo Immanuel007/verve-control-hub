@@ -4,9 +4,10 @@ import { useApp } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { KES } from '@/lib/format';
-import { Banknote, Copy, Check, Clock, MapPin, Smartphone, User as UserIcon, Send } from 'lucide-react';
+import { Banknote, Copy, Check, X, Clock, MapPin, Smartphone, User as UserIcon, Send } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { OtpAuthorize, OtpResult } from '@/components/OtpAuthorize';
 
 const PRESETS = [1000, 2500, 5000, 10000, 20000, 40000];
 
@@ -32,7 +33,9 @@ export default function Withdraw() {
   const [recipient, setRecipient] = useState<Recipient>('self');
   const [recipientPhone, setRecipientPhone] = useState('');
   const [recipientName, setRecipientName] = useState('');
-  const [sent, setSent] = useState<null | { ref: string; phone: string; name?: string }>(null);
+  const [sent, setSent] = useState<null | { ref: string; phone: string; name?: string; authRef?: string }>(null);
+  const [failed, setFailed] = useState<null | { reason: string; phone: string }>(null);
+  const [otpOpen, setOtpOpen] = useState(false);
 
   const account = accounts.find((a) => a.id === accountId);
   const insufficient = account ? amount > account.balance : false;
@@ -46,7 +49,7 @@ export default function Withdraw() {
 
   // Reset state when switching mode
   useEffect(() => {
-    setToken(null); setSent(null); setAmount(0);
+    setToken(null); setSent(null); setFailed(null); setAmount(0);
     setRecipient('self'); setRecipientPhone(''); setRecipientName('');
   }, [mode]);
 
@@ -59,15 +62,25 @@ export default function Withdraw() {
     toast({ title: 'Token generated', description: 'Use it within 10 minutes at any Interswitch ATM.' });
   };
 
-  const sendMobileMoney = () => {
+  const requestSend = () => {
     if (amount < 10) { toast({ title: 'Minimum send is KES 10', variant: 'destructive' }); return; }
     if (insufficient) { toast({ title: 'Insufficient balance', variant: 'destructive' }); return; }
     const phone = recipient === 'self' ? (user?.phone ?? '') : recipientPhone.trim();
     if (!phone || phone.replace(/\D/g, '').length < 9) {
       toast({ title: 'Enter a valid phone number', variant: 'destructive' }); return;
     }
+    setOtpOpen(true);
+  };
+
+  const onOtp = (result: OtpResult, authRef?: string) => {
+    setOtpOpen(false);
+    const phone = recipient === 'self' ? (user?.phone ?? '') : recipientPhone.trim();
+    if (result === 'failed') {
+      setFailed({ reason: 'OTP authorization was not completed.', phone });
+      return;
+    }
     const ref = (mode === 'mpesa' ? 'MP' : 'AT') + Date.now().toString().slice(-8);
-    setSent({ ref, phone, name: recipient === 'other' ? recipientName.trim() : user?.fullName });
+    setSent({ ref, phone, name: recipient === 'other' ? recipientName.trim() : user?.fullName, authRef });
     addTransaction({
       id: 't_' + ref,
       accountId: account?.id,
@@ -91,7 +104,7 @@ export default function Withdraw() {
   const ss = String(secondsLeft % 60).padStart(2, '0');
   const expired = secondsLeft <= 0;
 
-  const reset = () => { setToken(null); setSent(null); setAmount(0); setRecipientPhone(''); setRecipientName(''); };
+  const reset = () => { setToken(null); setSent(null); setFailed(null); setAmount(0); setRecipientPhone(''); setRecipientName(''); };
 
   return (
     <div>
