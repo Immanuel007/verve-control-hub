@@ -60,26 +60,7 @@ export default function LipaFaster() {
     else setSourceId(accounts[0]?.id ?? '');
   };
 
-  const pay = () => {
-    if (!tillNumber.trim()) { toast({ title: 'Enter the merchant Till number', variant: 'destructive' }); return; }
-    if (amount < 10) { toast({ title: 'Minimum amount is KES 10', variant: 'destructive' }); return; }
-    const ref = 'LF' + Date.now().toString().slice(-8);
-    setPaid({ ref });
-    addTransaction({
-      id: 't_' + ref,
-      cardId: source === 'verve' ? sourceId : undefined,
-      accountId: source !== 'verve' ? sourceId : undefined,
-      merchant: `Lipa Faster · ${merchantName || `Till ${tillNumber}`}`,
-      amount: -amount,
-      date: new Date().toISOString(),
-      category: 'shopping',
-      status: 'success',
-      channel: source === 'mpesa' ? 'bill' : source === 'bank' ? 'transfer' : 'pos',
-    });
-    toast({ title: 'Payment successful', description: `${KES(amount, { compact: true })} paid to ${merchantName || 'Till ' + tillNumber}` });
-  };
-
-  const reset = () => { setPaid(null); setAmount(0); setTillNumber(''); setMerchantName(''); };
+  const selectedSource = SOURCES.find((s) => s.id === source)!;
 
   const selectedSource = SOURCES.find((s) => s.id === source)!;
 
