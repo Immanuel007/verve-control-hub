@@ -46,19 +46,51 @@ const FLOWS: Record<Source, FlowStep[]> = {
 };
 
 export default function LipaFaster() {
-  const { cards, accounts, addTransaction } = useApp();
+  const { cards, accounts, user, addTransaction } = useApp();
   const [source, setSource] = useState<Source>('verve');
   const [tillNumber, setTillNumber] = useState('');
   const [merchantName, setMerchantName] = useState('');
   const [amount, setAmount] = useState<number>(0);
   const [sourceId, setSourceId] = useState<string>(cards[0]?.id ?? '');
-  const [paid, setPaid] = useState<null | { ref: string }>(null);
+  const [paid, setPaid] = useState<null | { ref: string; authRef?: string }>(null);
+  const [failed, setFailed] = useState<null | { reason: string }>(null);
+  const [otpOpen, setOtpOpen] = useState(false);
 
   const onSelectSource = (s: Source) => {
     setSource(s);
     if (s === 'verve') setSourceId(cards[0]?.id ?? '');
     else setSourceId(accounts[0]?.id ?? '');
   };
+
+  const requestPayment = () => {
+    if (!tillNumber.trim()) { toast({ title: 'Enter the merchant Till number', variant: 'destructive' }); return; }
+    if (amount < 10) { toast({ title: 'Minimum amount is KES 10', variant: 'destructive' }); return; }
+    setOtpOpen(true);
+  };
+
+  const onOtp = (result: OtpResult, authRef?: string) => {
+    setOtpOpen(false);
+    if (result === 'failed') {
+      setFailed({ reason: 'OTP authorization was not completed.' });
+      return;
+    }
+    const ref = 'LF' + Date.now().toString().slice(-8);
+    setPaid({ ref, authRef });
+    addTransaction({
+      id: 't_' + ref,
+      cardId: source === 'verve' ? sourceId : undefined,
+      accountId: source !== 'verve' ? sourceId : undefined,
+      merchant: `Lipa Faster · ${merchantName || `Till ${tillNumber}`}`,
+      amount: -amount,
+      date: new Date().toISOString(),
+      category: 'shopping',
+      status: 'success',
+      channel: source === 'mpesa' ? 'bill' : source === 'bank' ? 'transfer' : 'pos',
+    });
+    toast({ title: 'Payment successful', description: `${KES(amount, { compact: true })} paid to ${merchantName || 'Till ' + tillNumber}` });
+  };
+
+  const reset = () => { setPaid(null); setFailed(null); setAmount(0); setTillNumber(''); setMerchantName(''); };
 
   const selectedSource = SOURCES.find((s) => s.id === source)!;
 
