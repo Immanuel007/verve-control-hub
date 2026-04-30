@@ -75,6 +75,7 @@ export default function Cards() {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   const card = cards[activeIdx];
+  const { cvv: dcvv, secondsLeft: dcvvSeconds, ttl: dcvvTtl, rotate: rotateDcvv } = useDynamicCvv(card.id);
 
   const onScroll = () => {
     const el = scrollerRef.current; if (!el) return;
@@ -122,7 +123,7 @@ export default function Cards() {
       >
         {cards.map((c, i) => (
           <div key={c.id} className="snap-center shrink-0 w-[calc(100%-40px)]">
-            <CardVisual card={c} revealed={i === activeIdx && revealed} />
+            <CardVisual card={c} revealed={i === activeIdx && revealed} dcvv={i === activeIdx ? dcvv : '•••'} />
           </div>
         ))}
       </div>
