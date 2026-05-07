@@ -1,34 +1,46 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Fingerprint, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/store/app-store';
 import { toast } from '@/hooks/use-toast';
+import { loginSchema } from '@/lib/validation';
 
 export default function Login() {
   const nav = useNavigate();
+  const loc = useLocation();
+  const prefilled = (loc.state as { email?: string } | null)?.email ?? '';
   const { login, loginBiometric } = useApp();
-  const [identifier, setIdentifier] = useState('+254712345678');
-  const [pin, setPin] = useState('');
+  const [email, setEmail] = useState(prefilled);
+  const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [bioLoading, setBioLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin.length < 4) { toast({ title: 'Enter your 4-digit PIN', variant: 'destructive' }); return; }
+    const parsed = loginSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      const fe = parsed.error.flatten().fieldErrors;
+      setErrors({ email: fe.email?.[0], password: fe.password?.[0] });
+      return;
+    }
+    setErrors({});
     setLoading(true);
-    const r = await login(identifier, pin);
+    const r = await login(parsed.data.email, parsed.data.password);
     setLoading(false);
-    if (!r.ok) { toast({ title: 'Login failed', description: r.error, variant: 'destructive' }); return; }
+    if (!r.ok) { toast({ title: 'Sign in failed', description: r.error, variant: 'destructive' }); return; }
+    if (r.twoFactor) { toast({ title: '2FA required', description: 'Two-factor authentication is enabled on this account.' }); return; }
     nav('/app', { replace: true });
   };
 
   const onBio = async () => {
     setBioLoading(true);
-    await loginBiometric();
+    const r = await loginBiometric();
     setBioLoading(false);
+    if (!r.ok) { toast({ title: 'Biometrics unavailable', description: r.error, variant: 'destructive' }); return; }
     toast({ title: 'Welcome back', description: 'Authenticated with biometrics.' });
     nav('/app', { replace: true });
   };
@@ -49,32 +61,35 @@ export default function Login() {
 
         <form onSubmit={onSubmit} className="mt-10 space-y-4">
           <div>
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Phone or Email</label>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email</label>
             <Input
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="+254 712 345 678"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
               autoComplete="username"
+              type="email"
               className="mt-2 h-12 rounded-xl bg-muted/50 border-border"
             />
+            {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email}</p>}
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">PIN</label>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Password</label>
             <div className="relative mt-2">
               <Input
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 type={show ? 'text' : 'password'}
-                inputMode="numeric"
-                placeholder="••••"
-                className="h-12 rounded-xl bg-muted/50 border-border pr-11 font-mono-num text-lg tracking-[0.4em]"
+                autoComplete="current-password"
+                placeholder="••••••••"
+                className="h-12 rounded-xl bg-muted/50 border-border pr-11"
               />
-              <button type="button" onClick={() => setShow((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Toggle PIN visibility">
+              <button type="button" onClick={() => setShow((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Toggle password visibility">
                 {show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
-            <Link to="/forgot-pin" className="block mt-2 text-xs text-primary font-semibold">Forgot PIN?</Link>
+            {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password}</p>}
+            <Link to="/forgot-pin" className="block mt-2 text-xs text-primary font-semibold">Forgot password?</Link>
           </div>
 
           <Button type="submit" disabled={loading} className="w-full h-12 rounded-xl bg-gradient-primary shadow-elevated hover:opacity-95 font-semibold">
@@ -100,7 +115,7 @@ export default function Login() {
         <div className="mt-8 flex items-start gap-2 p-3 rounded-xl bg-muted/40 border border-border/60">
           <ShieldCheck className="h-4 w-4 text-success shrink-0 mt-0.5" />
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            <span className="font-semibold text-foreground">Demo:</span> phone <span className="font-mono-num">+254712345678</span> · PIN <span className="font-mono-num">1234</span>. Or tap biometrics to skip.
+            Use your Verve account email & password. Biometrics work after your first successful sign in on this device.
           </p>
         </div>
 

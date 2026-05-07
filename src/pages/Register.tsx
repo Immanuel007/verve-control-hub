@@ -1,80 +1,114 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { toast } from '@/hooks/use-toast';
+import { signupSchema } from '@/lib/validation';
+import { useApp } from '@/store/app-store';
+
+type FieldErrors = Partial<Record<'firstName' | 'lastName' | 'phoneNumber' | 'email' | 'password' | 'confirmPassword', string>>;
+
+const FIELDS: { key: keyof FieldErrors; label: string; type?: string; placeholder?: string; autoComplete?: string }[] = [
+  { key: 'firstName', label: 'First name', autoComplete: 'given-name' },
+  { key: 'lastName', label: 'Last name', autoComplete: 'family-name' },
+  { key: 'phoneNumber', label: 'Phone number', type: 'tel', placeholder: '+254712345678', autoComplete: 'tel' },
+  { key: 'email', label: 'Email', type: 'email', placeholder: 'you@example.com', autoComplete: 'email' },
+];
 
 export default function Register() {
   const nav = useNavigate();
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ name: '', phone: '', email: '', idNumber: '' });
-  const [otp, setOtp] = useState('');
+  const { register } = useApp();
+  const [form, setForm] = useState({
+    firstName: '', lastName: '', phoneNumber: '', email: '', password: '', confirmPassword: '',
+  });
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
 
-  const next = async () => {
-    if (step === 1) {
-      if (!form.name || !form.phone || !form.email || !form.idNumber) {
-        toast({ title: 'Fill in all fields', variant: 'destructive' }); return;
-      }
-      setLoading(true);
-      await new Promise((r) => setTimeout(r, 600));
-      setLoading(false);
-      setStep(2);
-      toast({ title: 'OTP sent', description: 'Use 123456 for the demo.' });
-    } else {
-      if (otp !== '123456') { toast({ title: 'Invalid OTP', description: 'Demo code is 123456', variant: 'destructive' }); return; }
-      setLoading(true);
-      await new Promise((r) => setTimeout(r, 500));
-      setLoading(false);
-      toast({ title: 'Account ready 🎉', description: 'Sign in to continue.' });
-      nav('/login');
+  const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = signupSchema.safeParse(form);
+    if (!parsed.success) {
+      const fe = parsed.error.flatten().fieldErrors;
+      setErrors({
+        firstName: fe.firstName?.[0],
+        lastName: fe.lastName?.[0],
+        phoneNumber: fe.phoneNumber?.[0],
+        email: fe.email?.[0],
+        password: fe.password?.[0],
+        confirmPassword: fe.confirmPassword?.[0],
+      });
+      return;
     }
+    setErrors({});
+    setLoading(true);
+    const r = await register(parsed.data);
+    setLoading(false);
+    if (!r.ok) { toast({ title: 'Sign up failed', description: r.error, variant: 'destructive' }); return; }
+    nav('/verify-email', { state: { email: r.email ?? parsed.data.email } });
   };
 
   return (
     <div className="app-frame">
-      <ScreenHeader back title="Create account" subtitle={step === 1 ? 'Step 1 of 2 — your details' : 'Step 2 of 2 — verify phone'} />
-      <div className="px-6 py-6 space-y-4">
-        {step === 1 ? (
-          <>
-            {(['name', 'phone', 'email', 'idNumber'] as const).map((k) => (
-              <div key={k}>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  {k === 'idNumber' ? 'National ID' : k === 'name' ? 'Full Name' : k}
-                </label>
-                <Input
-                  value={form[k]}
-                  onChange={(e) => setForm({ ...form, [k]: e.target.value })}
-                  className="mt-2 h-12 rounded-xl bg-muted/50 border-border"
-                  placeholder={k === 'phone' ? '+254712345678' : k === 'email' ? 'you@example.com' : ''}
-                />
-              </div>
-            ))}
-          </>
-        ) : (
-          <>
-            <p className="text-sm text-muted-foreground">Enter the 6-digit code sent to {form.phone || 'your phone'}.</p>
+      <ScreenHeader back title="Create account" subtitle="It only takes a minute" />
+      <form onSubmit={submit} className="px-6 py-6 space-y-4">
+        {FIELDS.map((f) => (
+          <div key={f.key}>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{f.label}</label>
             <Input
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              inputMode="numeric"
-              placeholder="• • • • • •"
-              className="h-14 rounded-xl bg-muted/50 border-border text-center font-mono-num text-2xl tracking-[0.6em]"
+              value={form[f.key] as string}
+              onChange={(e) => set(f.key, e.target.value)}
+              type={f.type ?? 'text'}
+              placeholder={f.placeholder}
+              autoComplete={f.autoComplete}
+              className="mt-2 h-12 rounded-xl bg-muted/50 border-border"
             />
-            <button onClick={() => toast({ title: 'OTP resent', description: '123456' })} className="text-xs text-primary font-semibold">Resend code</button>
-          </>
-        )}
+            {errors[f.key] && <p className="mt-1 text-xs text-destructive">{errors[f.key]}</p>}
+          </div>
+        ))}
 
-        <Button onClick={next} disabled={loading} className="w-full h-12 rounded-xl bg-gradient-primary mt-4 font-semibold">
-          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : step === 1 ? 'Send OTP' : 'Verify & Continue'}
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Password</label>
+          <div className="relative mt-2">
+            <Input
+              value={form.password}
+              onChange={(e) => set('password', e.target.value)}
+              type={showPwd ? 'text' : 'password'}
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
+              className="h-12 rounded-xl bg-muted/50 border-border pr-11"
+            />
+            <button type="button" onClick={() => setShowPwd((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-label="Toggle password">
+              {showPwd ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </button>
+          </div>
+          {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password}</p>}
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Confirm password</label>
+          <Input
+            value={form.confirmPassword}
+            onChange={(e) => set('confirmPassword', e.target.value)}
+            type={showPwd ? 'text' : 'password'}
+            autoComplete="new-password"
+            className="mt-2 h-12 rounded-xl bg-muted/50 border-border"
+          />
+          {errors.confirmPassword && <p className="mt-1 text-xs text-destructive">{errors.confirmPassword}</p>}
+        </div>
+
+        <Button type="submit" disabled={loading} className="w-full h-12 rounded-xl bg-gradient-primary mt-4 font-semibold">
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Create account'}
         </Button>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
           Already have an account? <Link to="/login" className="text-primary font-semibold">Sign in</Link>
         </p>
-      </div>
+      </form>
     </div>
   );
 }
