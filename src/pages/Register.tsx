@@ -46,7 +46,7 @@ export default function Register() {
     }
     setErrors({});
     setLoading(true);
-    const r = await register(parsed.data);
+    const r = await register(parsed.data as Parameters<typeof register>[0]);
     setLoading(false);
     if (!r.ok) { toast({ title: 'Sign up failed', description: r.error, variant: 'destructive' }); return; }
     nav('/verify-email', { state: { email: r.email ?? parsed.data.email } });
