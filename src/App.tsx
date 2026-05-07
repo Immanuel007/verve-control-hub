@@ -8,6 +8,7 @@ import { AppProvider } from "@/store/app-store";
 import { AppShell } from "@/components/AppShell";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import VerifyEmail from "./pages/VerifyEmail";
 import Home from "./pages/Home";
 import Cards from "./pages/Cards";
 import Transactions from "./pages/Transactions";
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/app" element={<AppShell />}>
                 <Route index element={<Home />} />
                 <Route path="cards" element={<Cards />} />
