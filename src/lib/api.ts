@@ -1,6 +1,12 @@
 import { ApiError, ApiResponse } from '@/types/api';
 
-const DEFAULT_BASE = 'http://quickteller-merchant-ui.test.kube.iswke';
+// Default to the Lovable Cloud edge-function proxy so the HTTPS preview can reach
+// the internal HTTP-only Quickteller host. Override with VITE_API_BASE_URL if
+// you have direct network access to the upstream.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const DEFAULT_BASE = SUPABASE_URL
+  ? `${SUPABASE_URL}/functions/v1/obelix-proxy`
+  : 'http://quickteller-merchant-ui.test.kube.iswke';
 export const API_BASE_URL: string =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? DEFAULT_BASE;
 
